@@ -1,101 +1,22 @@
-from tkinter import *
+
 import random
 import time
 import numpy as np
+import tensorflow as tf
 
 random.seed()
 
+
 class Constants:
-    SIZE = 20
-    DELAY = 100
     DECOMPOSE = True
-    KEYMAP = {
-        'w': 'N',
-        'd': 'E',
-        's': 'S',
-        'a': 'W'
-    }
-    KEYMAP2P = {
-        'w': [0, 'N'],
-        'd': [0, 'E'],
-        's': [0, 'S'],
-        'a': [0, 'W'],
-        'Up': [1, 'N'],
-        'Right': [1, 'E'],
-        'Down': [1, 'S'],
-        'Left': [1, 'W']
-    }
+
     DIRMAP = {
         'N': [-1, 0],
         'E': [0, 1],
         'S': [1, 0],
         'W': [0, -1]
     }
-    COLORMAP = {
-        0: "lawn green",
-        1: "purple",
-        2: "yellow"
-    }
 
-
-class Game(Frame):
-    def __init__(self):
-        super().__init__()
-
-        self.master.title("Snake")
-
-        self.window = Window()
-        self.window.grid(row=0, column=0)
-        self.scorelabel = Label(text='')
-        self.scorelabel.grid(row=1, column=0, sticky='w')
-        self.updatescore()
-
-    def updatescore(self):
-        self.scorelabel.config(text=("Score: " + str(len(self.window.board.snakes[0].body))))
-        self.scorelabel.after(Constants.DELAY, self.updatescore)
-
-
-class Window(Canvas):
-    def __init__(self, width=40, height=30):
-        super().__init__(width=(width * Constants.SIZE), height=(height * Constants.SIZE), background="green",
-                         bd=1)
-
-        self.board = Board(2, width, height)
-        self.bind_all('<Key>', self.changedirection)
-        self.after(Constants.DELAY, self.updategame)
-        self.pack()
-
-    def updategame(self):
-        if self.board.activegame:
-            self.board.updatesnake()
-            self.printboard()
-            self.after(Constants.DELAY, self.updategame)
-        else:
-            print("Game Over!")
-
-    def changedirection(self, event):
-        try:
-            self.board.changedirection(Constants.KEYMAP2P[event.keysym])
-        except KeyError:
-            exit()
-
-    def printboard(self):
-        self.delete("all")
-        self.printsnake()
-        self.printfood()
-
-    def printsnake(self):
-        for snake in self.board.snakes:
-            for cell in snake.body:
-                y = Constants.SIZE*cell[0]
-                x = Constants.SIZE*cell[1]
-                self.create_rectangle(x, y, (x + Constants.SIZE), (y + Constants.SIZE), fill=snake.color)
-
-    def printfood(self):
-        for food in self.board.food:
-            y = Constants.SIZE * food[0]
-            x = Constants.SIZE * food[1]
-            self.create_rectangle(x, y, (x + Constants.SIZE), (y + Constants.SIZE), fill=Constants.COLORMAP[2])
 
 
 class Board:
@@ -107,13 +28,17 @@ class Board:
         self.snakes = []
         self.food = []
         self.activegame = True
-        self.addsnakes()
+
+        board = tf.zeros([self.height, self.width], tf.int8)
+        self.board = board
+
+        self.initsnakes()
         self.placefood()
 
     def changedirection(self, dir):
         self.snakes[dir[0]].changedirection(dir[1])
 
-    def addsnakes(self):
+    def initsnakes(self):
         for idx in range(self.numsnakes):
             self.snakes.append(Snake(self.placenocollision()))
 
@@ -178,12 +103,13 @@ class Board:
 
 class Snake:
     def __init__(self, startpos, name='snake', color='purple'):
-        self.dir = Constants.KEYMAP[list(Constants.KEYMAP.keys())[random.randrange(4)]]
+        self.dir = list(Constants.DIRMAP.keys())[random.randrange(4)]
         self.speed = 1
         self.body = [startpos]
         self.alive = True
         self.name = name
         self.color = color
+        self.ticks = 0
 
     def getposition(self):
         return self.body
@@ -211,13 +137,7 @@ class Snake:
         else:
             return False
 
-
-def test():
-    root = Tk()
-    g = Game()
-    root.mainloop()
+    def addtick(self):
+        self.ticks = self.ticks + 1
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    test()
