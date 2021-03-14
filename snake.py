@@ -7,7 +7,6 @@ from pathfinder import *
 
 random.seed()
 
-
 class Board:
     decompose = True
     BOARDMAP = {
