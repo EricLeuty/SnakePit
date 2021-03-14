@@ -1,9 +1,10 @@
 from tkinter import *
 from snake import *
 
+
 class Constants:
     SIZE = 20
-    DELAY = 100
+    DELAY = 80
     KEYMAP = {
         'w': 'N',
         'd': 'E',
@@ -41,23 +42,26 @@ class Game(Frame):
         self.updatescore()
 
     def updatescore(self):
-        self.scorelabel.config(text=("Score: " + str(len(self.window.board.snakes[0].body))))
-        self.scorelabel.after(Constants.DELAY, self.updatescore)
+        if self.window.board.activegame:
+            self.scorelabel.config(text=("Score: " + str(len(self.window.board.snakes[0].body))))
+            self.scorelabel.after(Constants.DELAY, self.updatescore)
+        else:
+            pass
 
 
 class Window(Canvas):
-    def __init__(self, width=40, height=30):
+    def __init__(self, width=30, height=20):
         super().__init__(width=(width * Constants.SIZE), height=(height * Constants.SIZE), background="green",
                          bd=1)
 
-        self.board = Board(2, width, height)
+        self.board = Board(width=width, height=height)
         self.bind_all('<Key>', self.changedirection)
         self.after(Constants.DELAY, self.updategame)
         self.pack()
 
     def updategame(self):
         if self.board.activegame:
-            self.board.updatesnake()
+            self.board.updatesnakes()
             self.printboard()
             self.after(Constants.DELAY, self.updategame)
         else:
@@ -66,26 +70,22 @@ class Window(Canvas):
     def changedirection(self, event):
         try:
             self.board.changedirection(Constants.KEYMAP2P[event.keysym])
+            self.board.updatesnakes()
+            self.printboard()
         except KeyError:
             exit()
 
     def printboard(self):
         self.delete("all")
-        self.printsnake()
-        self.printfood()
+        (rows, cols) = self.board.board.shape
+        for row in range(rows):
+            for col in range(cols):
+                if self.board.board[row][col] != 0:
+                    y = Constants.SIZE * row
+                    x = Constants.SIZE * col
+                    self.create_rectangle(x, y, (x + Constants.SIZE), (y + Constants.SIZE), fill=Constants.COLORMAP[self.board.board[row][col]])
 
-    def printsnake(self):
-        for snake in self.board.snakes:
-            for cell in snake.body:
-                y = Constants.SIZE*cell[0]
-                x = Constants.SIZE*cell[1]
-                self.create_rectangle(x, y, (x + Constants.SIZE), (y + Constants.SIZE), fill=snake.color)
 
-    def printfood(self):
-        for food in self.board.food:
-            y = Constants.SIZE * food[0]
-            x = Constants.SIZE * food[1]
-            self.create_rectangle(x, y, (x + Constants.SIZE), (y + Constants.SIZE), fill=Constants.COLORMAP[2])
 
 def test():
     root = Tk()
