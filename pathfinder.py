@@ -44,7 +44,7 @@ class Pathfinder:
             self.activepath = False
         else:
             target = self.path[0]
-            if(board[target[0]][target[1]] == 2):
+            if(board[tuple(target)] == 2):
                 for cell in self.path:
                     if board[cell[0]][cell[1]] == 1:
                         self.activepath = False
@@ -66,7 +66,6 @@ class BFS:
             for n in neighbors:
                 if self.board[n[0]][n[1]] != 1:
                     self.path.append(n)
-
         else:
             while (self.visited[target[0]][target[1]][1] != target[0]) or (self.visited[target[0]][target[1]][2] != target[1]):
                 self.path.append(target)
@@ -77,21 +76,21 @@ class BFS:
 
     def findtarget(self, head):
         head = np.asarray(head)
-        self.visited[head[0]][head[1]][0] = 1
-        self.visited[head[0]][head[1]][1] = head[0]
-        self.visited[head[0]][head[1]][2] = head[1]
+        self.visited[tuple(head)][0] = 1
+        self.visited[tuple(head)][1] = head[0]
+        self.visited[tuple(head)][2] = head[1]
         self.queue.put(head)
         while not self.queue.empty():
             v = self.queue.get()
-            if self.board[v[0]][v[1]] == 2:
+            if self.board[tuple(v)] == 2:
                 return v
-            if (self.board[v[0]][v[1]] != 1) or (np.all(v == head)):
+            if (self.board[tuple(v)] != 1) or (np.all(v == head)):
                 neighbors = self.findneighbors(v)
                 for n in neighbors:
-                    if self.visited[n[0]][n[1]][0] == 0:
-                        self.visited[n[0]][n[1]][0] = 1
-                        self.visited[n[0]][n[1]][1] = v[0]
-                        self.visited[n[0]][n[1]][2] = v[1]
+                    if self.visited[tuple(n)][0] == 0:
+                        self.visited[tuple(n)][0] = 1
+                        self.visited[tuple(n)][1] = v[0]
+                        self.visited[tuple(n)][2] = v[1]
                         self.queue.put(n)
 
     def findneighbors(self, v):
@@ -101,16 +100,13 @@ class BFS:
         n3 = v + [-1, 0]
         n4 = v + [0, -1]
 
-        if self.inbounds(n1):
+        if self.board[tuple(n1)] != 3:
             neighbors.append(n1)
-        if self.inbounds(n2):
+        if self.board[tuple(n2)] != 3:
             neighbors.append(n2)
-        if self.inbounds(n3):
+        if self.board[tuple(n3)] != 3:
             neighbors.append(n3)
-        if self.inbounds(n4):
+        if self.board[tuple(n4)] != 3:
             neighbors.append(n4)
 
         return neighbors
-
-    def inbounds(self, n):
-        return (0 <= n[0] < self.board.shape[0]) and (0 <= n[1] < self.board.shape[1])

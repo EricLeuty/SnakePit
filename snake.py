@@ -3,6 +3,7 @@ import random
 import time
 import numpy as np
 import tensorflow as tf
+import csv
 from pathfinder import *
 
 random.seed()
@@ -12,14 +13,15 @@ class Board:
     BOARDMAP = {
         'ground': 0,
         'snake': 1,
-        'food': 2
+        'food': 2,
+        'wall': 3
     }
 
-    def __init__(self, numsnakes=1, numfood=1, width=30, height=20):
+    def __init__(self, numfood=1, width=30, height=20):
 
-        self.width = width
-        self.height = height
-        self.numsnakes = numsnakes
+        self.width = width + 2
+        self.height = height + 2
+        self.numsnakes = 0
         self.numfood = numfood
         self.snakes = []
         self.deadsnakes = []
@@ -29,14 +31,25 @@ class Board:
 
         self.board = np.zeros([self.height, self.width])
 
+        self.addsnakes([Snake(), Snake(), Snake()])
         self.initsnakes()
         self.initfood()
         self.updateboard()
 
+    def addsnakes(self, snakes):
+        num = 0
+        for snake in snakes:
+            if snake.computer:
+                snake.name = "Snake" + str(num)
+                num = num + 1
+            self.snakes.append(snake)
+            self.snakehash[snake.name] = snake
+        self.numsnakes = len(snakes)
+
     def initsnakes(self):
-        for idx in range(self.numsnakes):
+        for snake in self.snakes:
             self.updateboard()
-            self.snakes.append(Snake(self.getvalidposition()))
+            snake.spawn(self.getvalidposition())
 
     def initfood(self):
         for idx in range(self.numfood):
@@ -46,18 +59,23 @@ class Board:
 
     def updateboard(self):
         self.board = np.zeros([self.height, self.width])
+        self.board[0, :] = self.BOARDMAP['wall']
+        self.board[:, -1] = self.BOARDMAP['wall']
+        self.board[-1, :] = self.BOARDMAP['wall']
+        self.board[:, 0] = self.BOARDMAP['wall']
         for snake in self.snakes:
-            for cell in snake.body:
-                self.board[cell[0]][cell[1]] = self.BOARDMAP['snake']
+            if snake.alive:
+                for cell in snake.body:
+                    self.board[tuple(cell)] = self.BOARDMAP['snake']
         for food in self.food:
-            self.board[food.location[0]][food.location[1]] = self.BOARDMAP['food']
+            self.board[tuple(food.location)] = self.BOARDMAP['food']
 
     def getvalidposition(self):
         valid_position = False
         position = []
         while not valid_position:
-            position = [random.randrange(self.height), random.randrange(self.width)]
-            valid_position = (self.board[position[0]][position[1]] == 0)
+            position = np.array([random.randrange(self.height), random.randrange(self.width)])
+            valid_position = np.all(self.board[tuple(position)] == 0)
         return position
 
     def changedirection(self, dir):
@@ -67,22 +85,21 @@ class Board:
         self.checkactivegame()
         if self.activegame:
             for snake in self.snakes:
-                self.updateboard()
-                snake.move(self.board)
-                nextposition = snake.body[0]
-                if self.wallcollision(nextposition):
-                    snake.alive = False
-                    self.snakes.remove(snake)
-                else:
-                    value = self.board[nextposition[0]][nextposition[1]]
-                    if value == 1:
-                        snake.alive = False
-                        self.snakes.remove(snake)
+                if snake.alive:
+                    self.updateboard()
+                    snake.move(self.board)
+                    nextposition = snake.gethead()
+                    value = self.board[tuple(nextposition)]
+                    if value == 1 or value == 3:
+                        snake.kill(self.board)
+
                     elif value == 2:
                         self.popfood(nextposition)
                     else:
                         snake.noeat()
+            self.snakes.sort(key=lambda snake: len(snake.body), reverse=True)
         else:
+            self.writesnakedata()
             print("Game Over!")
 
     def checkactivegame(self):
@@ -96,38 +113,55 @@ class Board:
 
     def popfood(self, location):
         for food in self.food:
-            if food.location == location:
+            if np.all(food.location == location):
                 if food.respawnable:
                     tempfood = Food(self.getvalidposition())
                     self.food.append(tempfood)
                 self.food.remove(food)
 
+    def writesnakedata(self):
+        with open('snakedata.csv', 'w') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Snake Name", "Length", "Ticks", "Deathstate"])
+            for snake in self.snakes:
+                (name, length, ticks) = snake.getstats()
+                deathstate = snake.lastboard
+                writer.writerow([name, length, ticks, deathstate])
+
+
 
 class Snake:
     DIRMAP = {
-        'N': [-1, 0],
-        'E': [0, 1],
-        'S': [1, 0],
-        'W': [0, -1]
+        'N': np.array([-1, 0]),
+        'E': np.array([0, 1]),
+        'S': np.array([1, 0]),
+        'W': np.array([0, -1])
     }
 
-    def __init__(self, headpos, computer=True, name='snake', color='purple'):
+    def __init__(self, name='', computer=True, color='purple'):
         self.dir = list(self.DIRMAP.keys())[random.randrange(4)]
         self.speed = 1
-        self.body = [headpos]
+        self.body = [np.array([0, 0])]
         self.alive = True
         self.computer = computer
         self.name = name
         self.color = color
         self.ticks = 0
+        self.lastboard = []
         if self.computer:
             self.pathfinder = Pathfinder(self, BFS)
+
+    def spawn(self, headpos):
+        self.body[0] = np.array(headpos)
+
+    def gethead(self):
+        return self.body[0]
 
     def getposition(self):
         return self.body
 
     def changedirection(self, dir):
-        if ((self.DIRMAP[dir][0] + self.DIRMAP[self.dir][0]) == 0) and ((self.DIRMAP[dir][1] + self.DIRMAP[self.dir][1]) == 0):
+        if np.any(self.DIRMAP[dir] + self.DIRMAP[self.dir] == 0):
             self.dir = self.dir
         else:
             self.dir = dir
@@ -140,18 +174,17 @@ class Snake:
             self.pathfinder.updatesnake(board)
 
         step = self.DIRMAP[self.dir]
-        temp = [self.body[0][0], self.body[0][1]]
-        temp[0] = temp[0] + step[0]
-        temp[1] = temp[1] + step[1]
+        temp = self.body[0]
+        temp = temp + step
         self.body.insert(0, temp)
         self.ticks = self.ticks + 1
 
-    def selfcollision(self):
-        for idx in range(1, len(self.body)):
-            if (self.body[0][0] == self.body[idx][0]) and (self.body[0][1] == self.body[idx][1]):
-                return True
-        else:
-            return False
+    def kill(self, board):
+        self.alive = False
+        self.lastboard = board
+
+    def getstats(self):
+        return [self.name, str(len(self.body)), str(self.ticks)]
 
 
 class Food:

@@ -25,7 +25,8 @@ class Constants:
     COLORMAP = {
         0: "lawn green",
         1: "purple",
-        2: "yellow"
+        2: "yellow",
+        3: "grey"
     }
 
 
@@ -36,22 +37,36 @@ class Game(Frame):
         self.master.title("Snake")
 
         self.window = Window()
-        self.window.grid(row=0, column=0)
-        self.scorelabel = Label(text='')
-        self.scorelabel.grid(row=1, column=0, sticky='w')
+        self.window.grid(row=0, column=0, columnspan=3)
+        self.scorelabels = [[],[],[]]
+        self.snakestats()
         self.updatescore()
 
     def updatescore(self):
         if self.window.board.activegame:
-            self.scorelabel.config(text=("Score: " + str(len(self.window.board.snakes[0].body))))
-            self.scorelabel.after(Constants.DELAY, self.updatescore)
+            for idx in range(len(self.window.board.snakes)):
+                (name, length, ticks) = self.window.board.snakes[idx].getstats()
+                self.scorelabels[idx][0].config(text=name)
+                self.scorelabels[idx][1].config(text=length)
+                self.scorelabels[idx][2].config(text=ticks)
+            self.scorelabels[idx][0].after(Constants.DELAY, self.updatescore)
         else:
             pass
 
+    def snakestats(self):
+        for idx in range(len(self.window.board.snakes)):
+            self.scorelabels[idx].append(Label(text=''))
+            self.scorelabels[idx][0].grid(row=idx+1, column=0, sticky='w')
+            self.scorelabels[idx].append(Label(text=''))
+            self.scorelabels[idx][1].grid(row=idx + 1, column=1, sticky='w')
+            self.scorelabels[idx].append(Label(text=''))
+            self.scorelabels[idx][2].grid(row=idx + 1, column=2, sticky='w')
+
+
 
 class Window(Canvas):
-    def __init__(self, width=50, height=30):
-        super().__init__(width=(width * Constants.SIZE), height=(height * Constants.SIZE), background="green",
+    def __init__(self, width=30, height=20):
+        super().__init__(width=((width + 2) * Constants.SIZE), height=((height + 2) * Constants.SIZE), background="green",
                          bd=1)
 
         self.board = Board(width=width, height=height)
