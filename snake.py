@@ -15,7 +15,7 @@ class Board:
         'food': 2
     }
 
-    def __init__(self, numsnakes=5, numfood=3, width=30, height=20):
+    def __init__(self, numsnakes=1, numfood=1, width=30, height=20):
 
         self.width = width
         self.height = height
@@ -24,6 +24,7 @@ class Board:
         self.snakes = []
         self.deadsnakes = []
         self.food = []
+        self.snakehash = {}
         self.activegame = True
 
         self.board = np.zeros([self.height, self.width])

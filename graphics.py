@@ -4,7 +4,7 @@ from snake import *
 
 class Constants:
     SIZE = 20
-    DELAY = 80
+    DELAY = 5
     KEYMAP = {
         'w': 'N',
         'd': 'E',
@@ -50,7 +50,7 @@ class Game(Frame):
 
 
 class Window(Canvas):
-    def __init__(self, width=30, height=20):
+    def __init__(self, width=50, height=30):
         super().__init__(width=(width * Constants.SIZE), height=(height * Constants.SIZE), background="green",
                          bd=1)
 
