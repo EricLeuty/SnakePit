@@ -1,5 +1,10 @@
+import sys
+
+sys.path.insert(1, '/home/eric/PycharmProjects/SnakePit/Back_End')
+from _thread import *
 from tkinter import *
 from snake import *
+from network import Network
 
 
 class Constants:
@@ -35,6 +40,7 @@ class Game(Frame):
         super().__init__()
 
         self.master.title("Snake")
+        self.currentplayer = "eric"
 
         self.window = Window()
         self.window.grid(row=0, column=0, columnspan=3)
@@ -42,8 +48,10 @@ class Game(Frame):
         self.snakestats()
         self.updatescore()
 
+
     def updatescore(self):
         if self.window.board.activegame:
+            self.window.printboard()
             for idx in range(len(self.window.board.snakes)):
                 (name, length, ticks) = self.window.board.snakes[idx].getstats()
                 self.scorelabels[idx][0].config(text=name)
@@ -69,23 +77,16 @@ class Window(Canvas):
         super().__init__(width=((width + 2) * Constants.SIZE), height=((height + 2) * Constants.SIZE), background="green",
                          bd=1)
 
-        self.board = Board(width=width, height=height)
-        self.bind_all('<Key>', self.changedirection)
-        self.after(Constants.DELAY, self.updategame)
-        self.pack()
 
-    def updategame(self):
-        if self.board.activegame:
-            self.board.updatesnakes()
-            self.printboard()
-            self.after(Constants.DELAY, self.updategame)
-        else:
-            print("Game Over!")
+
+        self.board = Board(width=width, height=height)
+
+        self.pack()
 
     def changedirection(self, event):
         try:
-            self.board.changedirection(Constants.KEYMAP2P[event.keysym])
-            self.board.updatesnakes()
+            dir = Constants.KEYMAP[event.keysym]
+
             self.printboard()
         except KeyError:
             exit()
@@ -103,6 +104,7 @@ class Window(Canvas):
 
 
 def test():
+    n = Network()
     root = Tk()
     g = Game()
     root.mainloop()

@@ -1,5 +1,7 @@
 import socket
+from snake import *
 from _thread import *
+import pickle
 import sys
 
 server = "192.168.2.177"
@@ -14,7 +16,9 @@ except socket.error as e:
 s.listen(2)
 print("Waiting for connection, Server started")
 
-def threaded_client(conn):
+players = ["eric"]
+
+def threaded_client(conn,):
     conn.send(str.encode("Connected"))
     reply = ""
     while True:
@@ -34,6 +38,12 @@ def threaded_client(conn):
 
         print("Lost Connection")
         conn.close()
+
+
+
+
+board = Board()
+start_new_thread(Board.startgame, (board,))
 
 while True:
     conn, addr = s.accept()

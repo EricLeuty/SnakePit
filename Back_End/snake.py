@@ -2,7 +2,6 @@
 import random
 import time
 import numpy as np
-import tensorflow as tf
 import csv
 from pathfinder import *
 
@@ -35,6 +34,14 @@ class Board:
         self.initsnakes()
         self.initfood()
         self.updateboard()
+
+    def startgame(self):
+        while self.activegame:
+            self.updatesnakes()
+            self.checkactivegame()
+            time.sleep(100)
+        else:
+            self.writesnakedata()
 
     def addsnakes(self, snakes):
         num = 0
@@ -78,29 +85,24 @@ class Board:
             valid_position = np.all(self.board[tuple(position)] == 0)
         return position
 
-    def changedirection(self, dir):
-        self.snakes[dir[0]].changedirection(dir[1])
+    def changedirection(self, name, dir):
+        self.snakehash[name].changedirection(dir[1])
 
     def updatesnakes(self):
-        self.checkactivegame()
-        if self.activegame:
-            for snake in self.snakes:
-                if snake.alive:
-                    self.updateboard()
-                    snake.move(self.board)
-                    nextposition = snake.gethead()
-                    value = self.board[tuple(nextposition)]
-                    if value == 1 or value == 3:
-                        snake.kill(self.board)
+        for snake in self.snakes:
+            if snake.alive:
+                self.updateboard()
+                snake.move(self.board)
+                nextposition = snake.gethead()
+                value = self.board[tuple(nextposition)]
+                if value == 1 or value == 3:
+                    snake.kill(self.board)
 
-                    elif value == 2:
-                        self.popfood(nextposition)
-                    else:
-                        snake.noeat()
-            self.snakes.sort(key=lambda snake: len(snake.body), reverse=True)
-        else:
-            self.writesnakedata()
-            print("Game Over!")
+                elif value == 2:
+                    self.popfood(nextposition)
+                else:
+                    snake.noeat()
+        self.snakes.sort(key=lambda snake: len(snake.body), reverse=True)
 
     def checkactivegame(self):
         snakealive = False
@@ -120,7 +122,7 @@ class Board:
                 self.food.remove(food)
 
     def writesnakedata(self):
-        with open('snakedata.csv', 'w') as file:
+        with open('../snakedata.csv', 'w') as file:
             writer = csv.writer(file)
             writer.writerow(["Snake Name", "Length", "Ticks", "Deathstate"])
             for snake in self.snakes:
